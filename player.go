@@ -4,6 +4,8 @@ import (
 	"fmt"
 )
 
+const START_MONEY = 6000
+
 type Player struct {
 	playerNum int
 	tiles     [6]int
@@ -23,7 +25,7 @@ func (p *Player) Init(playerNum int, tiles []int) { // randomized 5 tiles
 		(*p).stocks[i] = 0
 	}
 
-	(*p).money = 3000
+	(*p).money = START_MONEY
 }
 
 func (p *Player) AddTile(thisTile int) {
