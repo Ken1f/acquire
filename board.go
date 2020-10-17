@@ -5,12 +5,13 @@ import (
 )
 
 type Board struct {
-	board [YMAX][XMAX]int
+	board   [YMAX][XMAX]int
+	kingdom KingdomInfo
 }
 
 type KingdomInfo struct {
-	tileTotal [4]int
-	leader    [4]int // empty (0), black (1), blue (2), green (3), red (4)
+	tileTotal [8]int
+	leader    [8]int // empty (0), black (1), blue (2), green (3), red (4)
 }
 
 func (b *Board) Init(mapchoice int) {
@@ -20,6 +21,10 @@ func (b *Board) Init(mapchoice int) {
 		(*b).InitMapAdvance()
 	} else {
 		(*b).InitMapTest()
+	}
+
+	for i := range b.kingdom.leader {
+		(*b).kingdom.leader[i] = 0
 	}
 }
 
@@ -117,6 +122,10 @@ func (b *Board) SetTile(x, y, thisTile int) {
 	(*b).board[y][x] = thisTile
 }
 
+func (b Board) GetTile(x, y int) int {
+	return b.board[y][x]
+}
+
 func (b *Board) SetEmpty(x, y int) {
 	(*b).board[y][x] = TILE["EMPTY"]
 }
@@ -178,18 +187,30 @@ func (b *Board) IsLeader(x, y int) bool {
 	}
 }
 
-func (b *Board) PlaceTile(thisTile, x, y int) bool {
-	canPlaceTile := true
-
-	if b.IsEmpty(x, y) && !b.IsRiver(x, y) {
-		(*b).board[y][x] = thisTile
-	} else if b.IsEmpty(x, y) && b.IsRiver(x, y) {
-		(*b).board[y][x] = thisTile
+func (b *Board) PlaceTile(x, y int) bool {
+	if b.IsEmpty(x, y) {
+		hasNeighbor, thisTile := b.HasNeighbor(x, y)
+		if hasNeighbor {
+			if thisTile == TILE["SINGLE"] {
+				(*b).SetTile(x, y, thisTile) // TODO: form new corporation
+			} else {
+				(*b).SetTile(x, y, thisTile)    // set to corporation
+				(*b).kingdom.leader[thisTile]++ // corporation increase +1
+			}
+		} else {
+			(*b).SetTile(x, y, TILE["SINGLE"]) // single tile
+		}
+		return true
 	} else { // else can't place tile
-		canPlaceTile = false
+		return false
 	}
+}
 
-	return canPlaceTile
+func (b *Board) PlaceTilePos(pos int) bool { // linear position input
+	y := pos / YMAX
+	x := pos % YMAX
+	fmt.Printf(" x %d y %d ", x, y) //
+	return (*b).PlaceTile(x, y)
 }
 
 func (b *Board) RemoveTile(x, y int) { // TODO: remove LEADER then add to PLAYER
@@ -243,21 +264,34 @@ func (b Board) FloodFill(x, y int, mark [][]bool, k *KingdomInfo) {
 			(*k).tileTotal[GREEN]++
 		case TILE["RED"]:
 			(*k).tileTotal[RED]++
-
-		case TILE["P1BLACK"], TILE["P2BLACK"], TILE["P3BLACK"], TILE["P4BLACK"]:
-			(*k).leader[BLACK] = b.board[y][x] / 4
-		case TILE["P1BLUE"], TILE["P2BLUE"], TILE["P3BLUE"], TILE["P4BLUE"]:
-			(*k).leader[BLUE] = b.board[y][x] / 4
-		case TILE["P1GREEN"], TILE["P2GREEN"], TILE["P3GREEN"], TILE["P4GREEN"]:
-			(*k).leader[GREEN] = b.board[y][x] / 4
-		case TILE["P1RED"], TILE["P2RED"], TILE["P3RED"], TILE["P4RED"]:
-			(*k).leader[RED] = b.board[y][x] / 4
+		case TILE["YELLOW"]:
+			(*k).tileTotal[YELLOW]++
+		case TILE["MAGENTA"]:
+			(*k).tileTotal[MAGENTA]++
+		case TILE["CYAN"]:
+			(*k).tileTotal[CYAN]++
+		case TILE["WHITE"]:
+			(*k).tileTotal[WHITE]++
 		}
 
 		b.FloodFill(x, y+1, mark, k) // up
 		b.FloodFill(x+1, y, mark, k) // right
 		b.FloodFill(x, y-1, mark, k) // down
 		b.FloodFill(x-1, y, mark, k) // left
+	}
+}
+
+func (b Board) HasNeighbor(x, y int) (bool, int) {
+	if (y+1 < YMAX) && !b.IsEmpty(x, y+1) {
+		return true, b.GetTile(x, y+1)
+	} else if (y > 0) && !b.IsEmpty(x, y-1) {
+		return true, b.GetTile(x, y+1)
+	} else if (x+1 > XMAX) && !b.IsEmpty(x+1, y) {
+		return true, b.GetTile(x, y+1)
+	} else if (x > 0) && !b.IsEmpty(x-1, y) {
+		return true, b.GetTile(x, y+1)
+	} else {
+		return false, -1
 	}
 }
 
@@ -275,4 +309,8 @@ func (b Board) Print() { // 16 wide x 11 height
 		}
 		fmt.Print("\n")
 	}
+}
+
+func (b Board) PrintTile(x, y int) { // Testing purpose
+	PrintTile(b.board[y][x])
 }

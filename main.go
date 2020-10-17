@@ -3,8 +3,10 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"os"
 	"strings"
+	"time"
 )
 
 const XMAX = 12
@@ -22,9 +24,14 @@ const (
 	BLUE
 	GREEN
 	RED
+	YELLOW
+	MAGENTA
+	CYAN
+	WHITE
 )
 
 const (
+	COLORSINGLE  = "\033[1;29m%s\033[0m"
 	COLORBLACK   = "\033[1;30m%s\033[0m"
 	COLORRED     = "\033[1;31m%s\033[0m"
 	COLORGREEN   = "\033[1;32m%s\033[0m"
@@ -54,19 +61,17 @@ func init() {
 	TILE = make(map[string]int)
 
 	TILE["EMPTY"] = 0
-	TILE["SINGLE"] = 1
+	TILE["SINGLE"] = 1 // white
 
 	TILE["BLACK"] = 2 //Zeta
 	TILE["BLUE"] = 3  //Sackson
 
-	TILE["GREEN"] = 4   //America
-	TILE["RED"] = 5     //Hydra
-	TILE["P1BLACK"] = 6 //Fusion
+	TILE["GREEN"] = 4  //America
+	TILE["RED"] = 5    //Hydra
+	TILE["YELLOW"] = 6 //Fusion
 
-	TILE["P1BLUE"] = 7  //Phoenix
-	TILE["P1GREEN"] = 8 //Quantum
-
-	// NEED RED + GOLD TILE
+	TILE["CYAN"] = 7    //Phoenix
+	TILE["MAGENTA"] = 8 //Quantum
 }
 
 func inBound(x, y int) bool {
@@ -93,51 +98,16 @@ func PrintTile(thisTile int) {
 		fmt.Printf(COLORBLACK, "S")
 	case TILE["BLUE"]:
 		fmt.Printf(COLORBLUE, "F")
-
-	case TILE["P1RED"]:
-		fmt.Printf(COLORRED, "1")
-	case TILE["P1GREEN"]:
-		fmt.Printf(COLORGREEN, "1")
-	case TILE["P1BLACK"]:
-		fmt.Printf(COLORBLACK, "1")
-	case TILE["P1BLUE"]:
-		fmt.Printf(COLORBLUE, "1")
-
-	case TILE["P2RED"]:
-		fmt.Printf(COLORRED, "2")
-	case TILE["P2GREEN"]:
-		fmt.Printf(COLORGREEN, "2")
-	case TILE["P2BLACK"]:
-		fmt.Printf(COLORBLACK, "2")
-	case TILE["P2BLUE"]:
-		fmt.Printf(COLORBLUE, "2")
-
-	case TILE["P3RED"]:
-		fmt.Printf(COLORRED, "3")
-	case TILE["P3GREEN"]:
-		fmt.Printf(COLORGREEN, "3")
-	case TILE["P3BLACK"]:
-		fmt.Printf(COLORBLACK, "3")
-	case TILE["P3BLUE"]:
-		fmt.Printf(COLORBLUE, "3")
-
-	case TILE["P4RED"]:
-		fmt.Printf(COLORRED, "4")
-	case TILE["P4GREEN"]:
-		fmt.Printf(COLORGREEN, "4")
-	case TILE["P4BLACK"]:
-		fmt.Printf(COLORBLACK, "4")
-	case TILE["P4BLUE"]:
-		fmt.Printf(COLORBLUE, "4")
-
-	case TILE["RIVER"]:
-		fmt.Printf(COLORBLUE, "R")
-	case TILE["WAR"]:
-		fmt.Printf(COLORMAGENTA, "W")
-	case TILE["GOLD"]:
-		fmt.Printf("O")
-	case TILE["CASTROPHE"]:
-		fmt.Printf(COLORWHITE, "C")
+	case TILE["YELLOW"]:
+		fmt.Printf(COLORYELLOW, "Y")
+	case TILE["MAGENTA"]:
+		fmt.Printf(COLORMAGENTA, "G")
+	case TILE["CYAN"]:
+		fmt.Printf(COLORCYAN, "C")
+	case TILE["WHITE"]:
+		fmt.Printf(COLORWHITE, "W")
+	case TILE["SINGLE"]:
+		fmt.Printf(COLORSINGLE, "X")
 	default:
 		fmt.Printf("error")
 	}
@@ -162,6 +132,15 @@ func printKingdomInfo(k KingdomInfo) {
 	fmt.Print(k.tileTotal[GREEN])
 	fmt.Printf(COLORRED, " RED:")
 	fmt.Print(k.tileTotal[RED])
+	fmt.Printf(COLORYELLOW, " YELLOW:")
+	fmt.Print(k.tileTotal[YELLOW])
+	fmt.Printf(COLORMAGENTA, " MAGENTA:")
+	fmt.Print(k.tileTotal[MAGENTA])
+	fmt.Printf(COLORCYAN, " CYAN: ")
+	fmt.Print(k.tileTotal[CYAN])
+	fmt.Printf(COLORWHITE, " WHITE: ")
+	fmt.Print(k.tileTotal[WHITE])
+
 	for i, leader := range k.leader {
 		switch i {
 		case 0:
@@ -186,6 +165,7 @@ func printKingdomInfo(k KingdomInfo) {
 			}
 		}
 	}
+	fmt.Printf("\n")
 }
 
 func readInput() {
@@ -197,10 +177,17 @@ func readInput() {
 	}
 }
 
-func main() {
-	fmt.Printf("Hello Acquire\n")
+func GetSeed() int64 {
+	seed := time.Now().UTC().UnixNano()
+	rand.Seed(seed)
+	return seed
+}
 
-	var p [4]Player
+func main() {
+	seed := GetSeed()
+	fmt.Printf("Hello Acquire: SEED: %d\n", seed)
+
+	var p [2]Player
 	var board Board
 	var bag Bag
 	pr("board init")
@@ -211,8 +198,6 @@ func main() {
 	pr("player init")
 	p[0].Init(PLAYER1, bag.DrawTiles(6))
 	p[1].Init(PLAYER1, bag.DrawTiles(6))
-	p[2].Init(PLAYER1, bag.DrawTiles(6))
-	p[3].Init(PLAYER1, bag.DrawTiles(6))
 	printGame(p[:], board, bag)
 
 	swap := []int{0, 1, 2} //
@@ -221,8 +206,13 @@ func main() {
 	p[1].SwapTiles(bag.DrawTiles(len(swap)), swap)
 	//readInput()
 	board.Init(MAPTEST)
-	printGame(p[:], board, bag)
 
+	board.PlaceTilePos(16)
+	board.PlaceTilePos(3)
+	board.PlaceTilePos(12)
+	board.PlaceTilePos(20)
+
+	printGame(p[:], board, bag)
 	kingdomInfo := board.GetKingdomInfo(1, 1)
 	printKingdomInfo(kingdomInfo)
 }
